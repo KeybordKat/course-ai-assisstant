@@ -37,3 +37,6 @@ black==23.12.1
 ipykernel==6.29.0
 jupyter==1.0.0
 jupyterlab==4.1.0
+
+# }rogress bar
+tqdm==4.66.1

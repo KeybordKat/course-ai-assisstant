@@ -20,10 +20,9 @@ TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
 SERPAPI_KEY = os.getenv("SERPAPI_KEY")
 
 # LLM Settings
-DEFAULT_LLM = os.getenv("DEFAULT_LLM", "anthropic")
-MODEL_NAME = os.getenv("MODEL_NAME", "claude-sonnet-4-20250514")
-TEMPERATURE = float(os.getenv("TEMPERATURE", "0.1"))
-MAX_TOKENS = int(os.getenv("MAX_TOKENS", "4096"))
+DEFAULT_LLM = os.getenv("DEFAULT_LLM", "ollama")  # Changed default
+MODEL_NAME = os.getenv("MODEL_NAME", "llama3.2")
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 
 # Vector DB Settings
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")

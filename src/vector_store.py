@@ -2,10 +2,11 @@
 from typing import List, Dict, Any, Optional
 import chromadb
 from chromadb.config import Settings
+from tqdm import tqdm
 from src import config
 from src.embeddings import EmbeddingGenerator
 from src.document_processor import DocumentChunk
-from tqdm import tqdm
+
 
 
 class VectorStore:
@@ -156,7 +157,7 @@ class VectorStore:
 
 # Quick test
 if __name__ == "__main__":
-    from src.embeddings import EmbeddingGenerator
+    from embeddings import EmbeddingGenerator
 
     # Initialize
     vector_store = VectorStore()

@@ -62,7 +62,7 @@ class PDFProcessor:
 
     def chunk_text(self, text: str, metadata: Dict[str, Any]) -> List[DocumentChunk]:
         """
-        Split text into overlapping chunks.
+        Split text into overlapping chunks (simple & fast).
 
         Args:
             text: The text to chunk
@@ -72,35 +72,16 @@ class PDFProcessor:
             List of DocumentChunk objects
         """
         chunks = []
-        start = 0
         text_length = len(text)
         chunk_num = 0
 
+        # Simple sliding window - much faster than sentence detection
+        start = 0
         while start < text_length:
-            # Get chunk end position
-            end = start + self.chunk_size
-
-            # If this isn't the last chunk, try to break at a sentence or word
-            if end < text_length:
-                # Look for sentence end (. ! ?)
-                sentence_end = max(
-                    text.rfind('. ', start, end),
-                    text.rfind('! ', start, end),
-                    text.rfind('? ', start, end)
-                )
-
-                if sentence_end > start:
-                    end = sentence_end + 1
-                else:
-                    # No sentence break found, look for word break
-                    space = text.rfind(' ', start, end)
-                    if space > start:
-                        end = space
-
-            # Extract chunk
+            end = min(start + self.chunk_size, text_length)
             chunk_text = text[start:end].strip()
 
-            if chunk_text:  # Only add non-empty chunks
+            if chunk_text and len(chunk_text) > 50:  # Skip tiny chunks
                 chunk_id = f"{metadata['source']}_page{metadata['page_number']}_chunk{chunk_num}"
 
                 chunk_metadata = {
@@ -119,7 +100,7 @@ class PDFProcessor:
 
                 chunk_num += 1
 
-            # Move start position with overlap
+            # Move to next chunk with overlap
             start = end - self.chunk_overlap if end < text_length else text_length
 
         return chunks

@@ -110,12 +110,17 @@ def main():
     for pdf in new_pdfs:
         print(f"  📄 {pdf.name}")
 
-    # Ask for confirmation
+    # Auto-confirm if running non-interactively, otherwise ask
     print(f"\n{'='*60}")
-    response = input("Process these new files? (y/n): ").strip().lower()
-    if response != 'y':
-        print("Cancelled.")
-        return
+    import sys
+    if sys.stdin.isatty():
+        response = input("Process these new files? (y/n): ").strip().lower()
+        if response != 'y':
+            print("Cancelled.")
+            return
+    else:
+        print("Auto-confirming (non-interactive mode)...")
+        print("Processing files...")
 
     # Step 4: Initialize models
     print(f"\n{'='*60}")

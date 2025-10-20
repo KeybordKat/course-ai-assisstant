@@ -266,14 +266,15 @@ async def trigger_ingestion():
     """
     Trigger document ingestion for newly uploaded files.
 
-    Note: This runs the ingestion script. The agent will need to be restarted
-    after ingestion to load the new documents.
+    This will automatically restart the API after ingestion to load new documents.
 
     Returns:
         Ingestion status
     """
     try:
         import subprocess
+        import signal
+        import os
         from src import config
 
         # Run ingestion script
@@ -287,10 +288,14 @@ async def trigger_ingestion():
         )
 
         if result.returncode == 0:
+            # Schedule restart after response is sent
+            import asyncio
+            asyncio.create_task(restart_server())
+
             return {
                 "status": "success",
                 "message": "Ingestion completed successfully",
-                "note": "Please restart the API to load new documents",
+                "note": "Server will restart automatically in 2 seconds",
                 "output": result.stdout
             }
         else:
@@ -304,6 +309,19 @@ async def trigger_ingestion():
         raise HTTPException(status_code=500, detail="Ingestion timed out (>10 minutes)")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ingestion failed: {str(e)}")
+
+
+async def restart_server():
+    """Restart the server after a delay."""
+    import asyncio
+    import os
+    import signal
+
+    # Wait a bit for response to be sent
+    await asyncio.sleep(2)
+
+    # Send SIGHUP to reload (uvicorn will restart with --reload flag)
+    os.kill(os.getpid(), signal.SIGHUP)
 
 
 if __name__ == "__main__":

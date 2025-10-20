@@ -291,8 +291,12 @@ with st.sidebar:
                     result = trigger_ingestion()
                     if result and result.get("status") == "success":
                         st.success("✅ Documents processed successfully!")
-                        st.warning("⚠️ Please restart the app to load new documents")
-                        st.code("Ctrl+C in terminal, then: ./start.sh")
+                        st.info("🔄 Server is restarting automatically...")
+                        st.info("💡 Refresh this page in 5 seconds to see new documents")
+                        # Auto-refresh after delay
+                        import time
+                        time.sleep(3)
+                        st.rerun()
                     elif result:
                         st.error(f"❌ {result.get('message', 'Processing failed')}")
     else:

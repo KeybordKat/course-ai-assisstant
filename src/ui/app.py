@@ -46,7 +46,7 @@ def ask_question(question: str, use_web_search: bool) -> Optional[dict]:
                 "question": question,
                 "use_web_search": use_web_search
             },
-            timeout=60
+            timeout=300  # 5 minutes for first request (model loading)
         )
         if response.status_code == 200:
             return response.json()
@@ -218,7 +218,13 @@ if prompt := st.chat_input("Ask a question about your course materials..."):
 
     # Get response from API
     with st.chat_message("assistant"):
-        with st.spinner("🤔 Thinking..."):
+        # Show appropriate spinner message
+        if len(st.session_state.messages) <= 1:
+            spinner_msg = "🤔 Thinking... (First question may take 30-60 seconds)"
+        else:
+            spinner_msg = "🤔 Thinking..."
+
+        with st.spinner(spinner_msg):
             response = ask_question(prompt, st.session_state.use_web_search)
 
         if response:

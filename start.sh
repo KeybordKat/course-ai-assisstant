@@ -36,17 +36,18 @@ echo "  ✓ API started (PID: $API_PID, logs: logs/api.log)"
 # Wait for API to be ready
 echo ""
 echo "⏳ Waiting for API to initialize..."
-sleep 8
 
-# Check if API is healthy
+# Check if API is healthy (wait up to 30 seconds)
 API_HEALTHY=false
-for i in {1..10}; do
+for i in {1..30}; do
     if curl -s http://localhost:8000/api/health > /dev/null 2>&1; then
         API_HEALTHY=true
         break
     fi
     sleep 1
+    echo -n "."
 done
+echo ""
 
 if [ "$API_HEALTHY" = false ]; then
     echo "❌ API failed to start. Check logs/api.log for details"

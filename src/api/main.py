@@ -8,9 +8,10 @@ from contextlib import asynccontextmanager
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+import shutil
 from src.agent.core import CourseAgent, AgentResponse
 from src.vector_store import VectorStore
 
@@ -202,6 +203,107 @@ async def get_subjects():
         "subjects": subjects,
         "count": len(subjects)
     }
+
+
+@app.post("/api/upload")
+async def upload_pdf(
+    file: UploadFile = File(...),
+    subject: str = Form(...)
+):
+    """
+    Upload a PDF file to a specific subject.
+
+    Args:
+        file: PDF file to upload
+        subject: Subject/folder name for the PDF
+
+    Returns:
+        Upload status and file info
+    """
+    # Validate file type
+    if not file.filename.endswith('.pdf'):
+        raise HTTPException(status_code=400, detail="Only PDF files are allowed")
+
+    try:
+        # Import config for PDF directory
+        from src import config
+
+        # Create subject directory if it doesn't exist
+        subject_dir = config.PDF_DIR / subject
+        subject_dir.mkdir(parents=True, exist_ok=True)
+
+        # Save file
+        file_path = subject_dir / file.filename
+
+        # Check if file already exists
+        if file_path.exists():
+            raise HTTPException(
+                status_code=400,
+                detail=f"File '{file.filename}' already exists in subject '{subject}'"
+            )
+
+        # Write file
+        with file_path.open("wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+        return {
+            "status": "success",
+            "message": f"File uploaded successfully to subject '{subject}'",
+            "filename": file.filename,
+            "subject": subject,
+            "path": str(file_path),
+            "note": "Run ingestion to add to database: python scripts/ingest_documents.py"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+
+
+@app.post("/api/ingest")
+async def trigger_ingestion():
+    """
+    Trigger document ingestion for newly uploaded files.
+
+    Note: This runs the ingestion script. The agent will need to be restarted
+    after ingestion to load the new documents.
+
+    Returns:
+        Ingestion status
+    """
+    try:
+        import subprocess
+        from src import config
+
+        # Run ingestion script
+        result = subprocess.run(
+            ["python", "scripts/ingest_documents.py"],
+            cwd=str(config.PROJECT_ROOT),
+            capture_output=True,
+            text=True,
+            input="y\n",  # Auto-confirm
+            timeout=600  # 10 minute timeout
+        )
+
+        if result.returncode == 0:
+            return {
+                "status": "success",
+                "message": "Ingestion completed successfully",
+                "note": "Please restart the API to load new documents",
+                "output": result.stdout
+            }
+        else:
+            return {
+                "status": "error",
+                "message": "Ingestion failed",
+                "error": result.stderr
+            }
+
+    except subprocess.TimeoutExpired:
+        raise HTTPException(status_code=500, detail="Ingestion timed out (>10 minutes)")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ingestion failed: {str(e)}")
 
 
 if __name__ == "__main__":

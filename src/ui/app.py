@@ -74,6 +74,43 @@ def ask_question(question: str, use_web_search: bool, subject: str = "all") -> O
     return None
 
 
+def upload_pdf(file, subject: str) -> Optional[dict]:
+    """Upload a PDF file to a subject."""
+    try:
+        files = {"file": (file.name, file, "application/pdf")}
+        data = {"subject": subject}
+
+        response = requests.post(
+            f"{API_URL}/api/upload",
+            files=files,
+            data=data,
+            timeout=60
+        )
+
+        if response.status_code == 200:
+            return response.json()
+        else:
+            st.error(f"Upload failed: {response.json().get('detail', 'Unknown error')}")
+            return None
+    except Exception as e:
+        st.error(f"Upload error: {str(e)}")
+        return None
+
+
+def trigger_ingestion() -> Optional[dict]:
+    """Trigger document ingestion."""
+    try:
+        response = requests.post(f"{API_URL}/api/ingest", timeout=600)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            st.error(f"Ingestion failed: {response.json().get('detail', 'Unknown error')}")
+            return None
+    except Exception as e:
+        st.error(f"Ingestion error: {str(e)}")
+        return None
+
+
 def format_citation(citation: dict) -> str:
     """Format a citation nicely."""
     return f"📄 **{citation['source']}** (Page {citation['page']}) - Relevance: {citation['relevance']:.2f}"
@@ -192,6 +229,74 @@ with st.sidebar:
                     st.write(f"- {source}")
     else:
         st.info("Connect to API to view stats")
+
+    st.divider()
+
+    # Document Upload Section
+    st.header("📤 Upload Documents")
+    if api_healthy:
+        with st.expander("➕ Add PDFs", expanded=False):
+            # Subject input (existing or new)
+            available_subjects = get_subjects()
+
+            st.write("**Select or Create Subject:**")
+            use_existing = st.radio(
+                "Subject Type",
+                ["Existing Subject", "New Subject"],
+                horizontal=True,
+                label_visibility="collapsed"
+            )
+
+            if use_existing == "Existing Subject" and available_subjects:
+                subject_name = st.selectbox(
+                    "Choose subject",
+                    options=available_subjects,
+                    label_visibility="collapsed"
+                )
+            else:
+                subject_name = st.text_input(
+                    "Subject name",
+                    placeholder="e.g., Theory 4, Algorithms, etc.",
+                    help="Enter a name for the new subject folder",
+                    label_visibility="collapsed"
+                )
+
+            # File uploader
+            uploaded_file = st.file_uploader(
+                "Choose PDF file",
+                type=['pdf'],
+                help="Upload a PDF to add to your course materials",
+                label_visibility="collapsed"
+            )
+
+            # Upload button
+            if st.button("📤 Upload PDF", type="primary", use_container_width=True):
+                if not subject_name or not subject_name.strip():
+                    st.error("Please enter a subject name")
+                elif not uploaded_file:
+                    st.error("Please select a PDF file")
+                else:
+                    with st.spinner(f"Uploading {uploaded_file.name}..."):
+                        result = upload_pdf(uploaded_file, subject_name.strip())
+                        if result:
+                            st.success(f"✅ {result['message']}")
+                            st.info("💡 Click 'Process New Documents' below to add to database")
+
+            st.divider()
+
+            # Ingestion button
+            st.write("**Process New Documents:**")
+            if st.button("🔄 Process New Documents", use_container_width=True):
+                with st.spinner("Processing documents... This may take several minutes"):
+                    result = trigger_ingestion()
+                    if result and result.get("status") == "success":
+                        st.success("✅ Documents processed successfully!")
+                        st.warning("⚠️ Please restart the app to load new documents")
+                        st.code("Ctrl+C in terminal, then: ./start.sh")
+                    elif result:
+                        st.error(f"❌ {result.get('message', 'Processing failed')}")
+    else:
+        st.info("Connect to API to upload documents")
 
     st.divider()
 

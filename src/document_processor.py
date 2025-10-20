@@ -39,6 +39,15 @@ class PDFProcessor:
         """
         pages_data = []
 
+        # Detect subject from folder structure
+        # If PDF is in data/pdfs/subject_name/file.pdf, subject = subject_name
+        # If PDF is in data/pdfs/file.pdf, subject = "general"
+        parent_folder = pdf_path.parent.name
+        if parent_folder == "pdfs":
+            subject = "general"
+        else:
+            subject = parent_folder
+
         try:
             with pdfplumber.open(pdf_path) as pdf:
                 total_pages = len(pdf.pages)
@@ -52,7 +61,8 @@ class PDFProcessor:
                             'text': text,
                             'page_number': page_num,
                             'source': pdf_path.name,
-                            'total_pages': total_pages
+                            'total_pages': total_pages,
+                            'subject': subject
                         })
         except Exception as e:
             print(f"Error processing {pdf_path.name}: {e}")
@@ -133,7 +143,8 @@ class PDFProcessor:
             page_metadata = {
                 'source': page_data['source'],
                 'page_number': page_data['page_number'],
-                'total_pages': page_data['total_pages']
+                'total_pages': page_data['total_pages'],
+                'subject': page_data['subject']
             }
 
             chunks = self.chunk_text(page_text, page_metadata)

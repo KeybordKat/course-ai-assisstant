@@ -16,6 +16,9 @@ if "messages" not in st.session_state:
 if "use_web_search" not in st.session_state:
     st.session_state.use_web_search = True
 
+if "selected_subject" not in st.session_state:
+    st.session_state.selected_subject = "all"
+
 
 def check_api_health() -> bool:
     """Check if the API is available."""
@@ -37,14 +40,26 @@ def get_stats() -> Optional[dict]:
     return None
 
 
-def ask_question(question: str, use_web_search: bool) -> Optional[dict]:
+def get_subjects() -> list[str]:
+    """Get available subjects."""
+    try:
+        response = requests.get(f"{API_URL}/api/subjects", timeout=5)
+        if response.status_code == 200:
+            return response.json().get("subjects", [])
+    except Exception:
+        pass
+    return []
+
+
+def ask_question(question: str, use_web_search: bool, subject: str = "all") -> Optional[dict]:
     """Send question to API."""
     try:
         response = requests.post(
             f"{API_URL}/api/ask",
             json={
                 "question": question,
-                "use_web_search": use_web_search
+                "use_web_search": use_web_search,
+                "subject": subject if subject != "all" else None
             },
             timeout=300  # 5 minutes for first request (model loading)
         )
@@ -122,6 +137,36 @@ with st.sidebar:
     else:
         st.error("❌ API not available")
         st.warning("Please start the API server:\n```bash\npython src/api/main.py\n```")
+
+    st.divider()
+
+    # Subject selector
+    st.header("📚 Subject Filter")
+    if api_healthy:
+        available_subjects = get_subjects()
+        if available_subjects:
+            # Add "All Subjects" option
+            subject_options = ["all"] + available_subjects
+            subject_labels = {
+                "all": "All Subjects",
+                **{s: s.replace("_", " ").title() for s in available_subjects}
+            }
+
+            selected_subject = st.selectbox(
+                "Select Subject",
+                options=subject_options,
+                format_func=lambda x: subject_labels.get(x, x),
+                index=subject_options.index(st.session_state.selected_subject) if st.session_state.selected_subject in subject_options else 0,
+                help="Filter questions by subject - searches only relevant documents"
+            )
+            st.session_state.selected_subject = selected_subject
+
+            if selected_subject != "all":
+                st.info(f"📖 Searching only: **{subject_labels[selected_subject]}**")
+        else:
+            st.info("No subjects detected. Organize PDFs into subject folders.")
+    else:
+        st.info("Connect to API to select subjects")
 
     st.divider()
 
@@ -225,7 +270,11 @@ if prompt := st.chat_input("Ask a question about your course materials..."):
             spinner_msg = "🤔 Thinking..."
 
         with st.spinner(spinner_msg):
-            response = ask_question(prompt, st.session_state.use_web_search)
+            response = ask_question(
+                prompt,
+                st.session_state.use_web_search,
+                st.session_state.selected_subject
+            )
 
         if response:
             # Display answer

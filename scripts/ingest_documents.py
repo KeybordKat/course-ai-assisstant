@@ -64,9 +64,9 @@ def main():
     print("Document Ingestion Pipeline - MEMORY EFFICIENT")
     print("=" * 60)
 
-    # Step 1: Find PDFs
+    # Step 1: Find PDFs (including in subdirectories)
     print("\n📂 Step 1: Finding PDF files...")
-    pdf_files = list(config.PDF_DIR.glob("*.pdf"))
+    pdf_files = list(config.PDF_DIR.glob("**/*.pdf"))  # Recursive search
 
     if not pdf_files:
         print(f"\n⚠️  No PDF files found in {config.PDF_DIR}")

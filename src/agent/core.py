@@ -58,21 +58,28 @@ class CourseAgent:
         print(f"✓ Using model: {config.MODEL_NAME}")
         print("✓ Agent ready!")
 
-    def retrieve_from_course(self, query: str, n_results: int = 5) -> List[Citation]:
+    def retrieve_from_course(self, query: str, n_results: int = 5, subject: Optional[str] = None) -> List[Citation]:
         """
         Retrieve relevant chunks from course materials.
 
         Args:
             query: User's question
             n_results: Number of results to retrieve
+            subject: Optional subject filter (e.g., "theory", "logic")
 
         Returns:
             List of citations
         """
+        # Build metadata filter if subject is specified
+        filter_metadata = None
+        if subject and subject != "all":
+            filter_metadata = {"subject": subject}
+
         results = self.vector_store.search(
             query=query,
             embedding_generator=self.embedding_gen,
-            n_results=n_results
+            n_results=n_results,
+            filter_metadata=filter_metadata
         )
 
         citations = []
@@ -176,24 +183,27 @@ class CourseAgent:
 
         return steps
 
-    def answer_question(self, query: str, use_web: bool = True) -> AgentResponse:
+    def answer_question(self, query: str, use_web: bool = True, subject: Optional[str] = None) -> AgentResponse:
         """
         Answer a question using course materials and optionally web search.
 
         Args:
             query: User's question
             use_web: Whether to use web search if needed
+            subject: Optional subject filter (e.g., "theory", "logic", or "all")
 
         Returns:
             AgentResponse with answer, reasoning, and citations
         """
         print(f"\n{'=' * 60}")
         print(f"Question: {query}")
+        if subject and subject != "all":
+            print(f"Subject: {subject}")
         print("=" * 60)
 
         # Step 1: Retrieve from course materials
         print("📚 Searching course materials...")
-        course_citations = self.retrieve_from_course(query, n_results=5)
+        course_citations = self.retrieve_from_course(query, n_results=5, subject=subject)
 
         # Step 2: Decide if web search is needed
         web_results = []

@@ -60,6 +60,7 @@ class QuestionRequest(BaseModel):
     """Request model for asking questions."""
     question: str
     use_web_search: bool = True
+    subject: Optional[str] = None  # Optional subject filter
 
 
 class Citation(BaseModel):
@@ -152,7 +153,8 @@ async def ask_question(request: QuestionRequest):
         # Get answer from agent
         response = agent.answer_question(
             query=request.question,
-            use_web=request.use_web_search
+            use_web=request.use_web_search,
+            subject=request.subject
         )
 
         # Convert to API response format
@@ -186,6 +188,19 @@ async def get_sources():
     return {
         "sources": sorted(list(sources)),
         "count": len(sources)
+    }
+
+
+@app.get("/api/subjects")
+async def get_subjects():
+    """Get list of all subjects in the database."""
+    if agent is None:
+        raise HTTPException(status_code=503, detail="Agent not initialized")
+
+    subjects = agent.vector_store.get_subjects()
+    return {
+        "subjects": subjects,
+        "count": len(subjects)
     }
 
 

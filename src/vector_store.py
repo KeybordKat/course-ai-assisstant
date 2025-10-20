@@ -154,6 +154,17 @@ class VectorStore:
         """Check if a source has already been processed."""
         return source_name in self.get_processed_sources()
 
+    def get_subjects(self) -> list[str]:
+        """Get list of all subjects in the database."""
+        count = self.collection.count()
+        if count == 0:
+            return []
+
+        # Get all metadata
+        all_data = self.collection.get()
+        subjects = {m.get('subject', 'general') for m in all_data['metadatas']}
+        return sorted(list(subjects))
+
 
 # Quick test
 if __name__ == "__main__":

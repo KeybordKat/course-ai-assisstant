@@ -68,7 +68,7 @@ class CourseAgent:
             subject: Optional subject filter (e.g., "theory", "logic")
 
         Returns:
-            List of citations
+            List of citations (filtered by relevance threshold)
         """
         # Build metadata filter if subject is specified
         filter_metadata = None
@@ -88,12 +88,16 @@ class CourseAgent:
                 results['metadatas'],
                 results['distances']
         ):
-            citations.append(Citation(
-                source=metadata['source'],
-                page=metadata['page_number'],
-                text=doc,
-                relevance=1 - distance  # Convert distance to similarity
-            ))
+            relevance = 1 - distance  # Convert distance to similarity
+
+            # Only include results above relevance threshold
+            if relevance >= config.RELEVANCE_THRESHOLD:
+                citations.append(Citation(
+                    source=metadata['source'],
+                    page=metadata['page_number'],
+                    text=doc,
+                    relevance=relevance
+                ))
 
         return citations
 
@@ -170,11 +174,13 @@ class CourseAgent:
         """
         steps = []
 
-        steps.append(f"📚 Searched course materials and found {len(course_citations)} relevant chunks")
+        steps.append(f"📚 Searched course materials and found {len(course_citations)} relevant chunks (threshold: {config.RELEVANCE_THRESHOLD:.2f})")
 
         if course_citations:
             best = course_citations[0]
             steps.append(f"📄 Most relevant: {best.source}, Page {best.page} (relevance: {best.relevance:.2f})")
+        else:
+            steps.append(f"⚠️ No results above relevance threshold of {config.RELEVANCE_THRESHOLD:.2f}")
 
         if web_results:
             steps.append(f"🌐 Searched web and found {len(web_results)} additional sources")

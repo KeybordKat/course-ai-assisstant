@@ -33,6 +33,9 @@ EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM
 CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "1000"))
 CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "200"))
 
+# Retrieval Settings
+RELEVANCE_THRESHOLD = float(os.getenv("RELEVANCE_THRESHOLD", "0.3"))  # Minimum relevance score (0-1)
+
 # Search Settings
 SEARCH_ENGINE = os.getenv("SEARCH_ENGINE", "duckduckgo")
 

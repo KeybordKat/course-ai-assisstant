@@ -264,7 +264,7 @@ if __name__ == "__main__":
     agent = CourseAgent()
 
     # Test question
-    response = agent.answer_question("What is a finite automaton?")
+    response = agent.answer_question("What is propositional logic")
 
     print("\n" + "=" * 60)
     print("REASONING PROCESS:")

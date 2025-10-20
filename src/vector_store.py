@@ -126,10 +126,10 @@ class VectorStore:
         """Get statistics about the vector store."""
         count = self.collection.count()
 
-        # Get sample to check sources
+        # Get ALL data to check sources (not just a sample)
         if count > 0:
-            sample = self.collection.get(limit=min(count, 100))
-            sources = set(m['source'] for m in sample['metadatas'])
+            all_data = self.collection.get()
+            sources = set(m['source'] for m in all_data['metadatas'])
         else:
             sources = set()
 
